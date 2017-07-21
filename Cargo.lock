@@ -1,0 +1,11 @@
+[root]
+name = "quartz"
+version = "0.1.0"
+dependencies = [
+ "libchip8 0.1.0",
+]
+
+[[package]]
+name = "libchip8"
+version = "0.1.0"
+
