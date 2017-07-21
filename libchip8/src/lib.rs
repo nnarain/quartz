@@ -1,14 +1,16 @@
 
-mod cpu;
-use cpu::Cpu;
+mod vm;
+use vm::VirtualMachine;
 
 pub struct Chip8 {
-    cpu: Cpu
+    vm: VirtualMachine
 }
 
 impl Chip8 {
     pub fn new() -> Chip8 {
-        Chip8{cpu: Cpu::new()}
+        Chip8 {
+            vm: VirtualMachine::new()
+        }
     }
 }
 
