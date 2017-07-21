@@ -28,7 +28,7 @@ enum Instruction {
     SUBVXY(u8, u8),
     SHRVXY(u8, u8),
     SUBNVXY(u8, u8),
-    SHLVXY(u8, u8)
+    SHLVXY(u8, u8),
     SNEVXY(u8, u8),
     LDI(u16),
     JR(u16),
