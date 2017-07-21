@@ -12,6 +12,10 @@ impl Chip8 {
             vm: VirtualMachine::new()
         }
     }
+
+    pub fn update(&mut self, steps: u32) {
+        self.vm.step(steps);
+    }
 }
 
 pub fn version() -> &'static str {
