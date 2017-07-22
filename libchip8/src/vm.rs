@@ -1,11 +1,13 @@
+use std::ops;
+
 /// Representation of Chip8 Virtual Machine
 pub struct VirtualMachine {
     memory: [u8; 4096], // 4096 bytes of memory
     stack:  [u16; 16],  // 16 bytes of stack
     pc:     u16,        // program counter
     sp:     u8,         // stack pointer
-    vx:     [u8; 16],   // general purpose registers
-    I:      u16         // index register
+    I:      u16,        // index register
+    vx:     [u8; 16]    // general purpose registers
 }
 
 /// Chip8 instructions
@@ -54,8 +56,8 @@ impl VirtualMachine {
             stack:  [0; 16],
             pc:     0x200,
             sp:     0xF,
-            vx:     [0; 16],
-            I:      0x0
+            I:      0x0,
+            vx:     [0; 16]
         }
     }
 
@@ -85,7 +87,64 @@ impl VirtualMachine {
     }
 
     fn decode(&self, opcode: u16) -> Instruction {
-        Instruction::CLS()
+        match opcode & 0xF000 {
+            0x0000 => {
+                match opcode {
+                    0x00E0 => return Instruction::CLS(),
+                    0x00EE => return Instruction::RET(),
+                    _ => panic!("Invalid Opcode")
+                }
+            },
+            0x1000 => return Instruction::JP(opcode & 0x0FFF),
+            0x2000 => return Instruction::CALL(opcode & 0x0FFF),
+            0x3000 => return Instruction::SEVXB(nybble(opcode, 2), (opcode & 0x00FF) as u8),
+            0x4000 => return Instruction::SNEVXB(nybble(opcode, 2), (opcode & 0x00FF) as u8),
+            0x5000 => return Instruction::SEVXY(nybble(opcode, 2), nybble(opcode, 1)),
+            0x6000 => return Instruction::LDVXB(nybble(opcode, 2), (opcode & 0x00FF) as u8),
+            0x7000 => return Instruction::ADDVXB(nybble(opcode, 2), (opcode & 0x00FF) as u8),
+            0x8000 => {
+                match opcode & 0x000F {
+                    0x0000 => return Instruction::LDVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x0001 => return Instruction::ORVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x0002 => return Instruction::ANDVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x0003 => return Instruction::XORVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x0004 => return Instruction::ADDVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x0005 => return Instruction::SUBVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x0006 => return Instruction::SHRVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x0007 => return Instruction::SUBNVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    0x000E => return Instruction::SHLVXY(nybble(opcode, 2), nybble(opcode, 1)),
+                    _ => panic!("Invalid Opcode!!!")
+                }
+            },
+            0x9000 => return Instruction::SNEVXY(nybble(opcode, 2), nybble(opcode, 1)),
+            0xA000 => return Instruction::LDI(opcode & 0x0FFF),
+            0xB000 => return Instruction::JR(opcode & 0x0FFF),
+            0xC000 => return Instruction::RND(nybble(opcode, 2), (opcode & 0x00FF) as u8),
+            0xD000 => return Instruction::DRAW(nybble(opcode, 2), nybble(opcode, 1), (opcode & 0x000F) as u8),
+            0xE000 => {
+                match opcode & 0x00FF {
+                    0x009E => return Instruction::SKP(nybble(opcode, 2)),
+                    0x00A1 => return Instruction::SKNP(nybble(opcode, 2)),
+                    _ => panic!("Invalid Opcode")
+                }
+            },
+            0xF000 => {
+                match opcode & 0x00FF {
+                    0x000A => return Instruction::LDVXK(nybble(opcode, 2)),
+                    0x0015 => return Instruction::LDDTVX(nybble(opcode, 2)),
+                    0x0018 => return Instruction::LDSTVS(nybble(opcode, 2)),
+                    0x001E => return Instruction::ADDIVX(nybble(opcode, 2)),
+                    0x0029 => return Instruction::LDFVX(nybble(opcode, 2)),
+                    0x0033 => return Instruction::LDB(nybble(opcode, 2)),
+                    0x0055 => return Instruction::LDIVX(nybble(opcode, 2)),
+                    0x0065 => return Instruction::LDVXI(nybble(opcode, 2)),
+                    _ => panic!("Invalid Opcode")
+                }
+            },
+            _ => {
+                panic!("Something went impossible");
+            }
+        }
     }
 
     fn execute(&mut self, instr: Instruction) {
@@ -127,6 +186,13 @@ impl VirtualMachine {
             Instruction::LDVXI(x) => println!("")
         }
     }
+}
+
+/// Get the nybble `n` from `value`
+fn nybble(value: u16, n: u8) -> u8 {
+    let shift = 4 * n;
+    let mask: u16 = 0x0F << shift;
+    ((value & mask) >> shift) as u8
 }
 
 #[cfg(test)]
