@@ -1,4 +1,6 @@
 extern crate rand;
+use std::fmt;
+use std::error::Error;
 
 const MEMORY_SIZE: usize = 4096;
 const STACK_SIZE: usize = 16;
@@ -57,6 +59,10 @@ enum Instruction {
     LDVXI(usize)
 }
 
+pub struct DecodeError {
+    opcode: u16
+}
+
 impl VirtualMachine {
     pub fn new() -> VirtualMachine {
         let mut vm = VirtualMachine {
@@ -76,13 +82,17 @@ impl VirtualMachine {
     }
 
     /// Run `steps` number of instructions from memory
-    pub fn step(&mut self, steps: u32) {
+    pub fn step(&mut self, steps: u32) -> Result<(), DecodeError> {
         for _ in 0..steps {
             let opcode = self.fetch();
-            let instr = self.decode(opcode);
 
-            self.execute(instr);
+            match self.decode(opcode) {
+                Ok(instr) => self.execute(instr),
+                Err(e) => return Err(e)
+            }
         }
+
+        Ok(())
     }
 
     fn fetch(&mut self) -> u16 {
@@ -100,59 +110,59 @@ impl VirtualMachine {
         opcode
     }
 
-    fn decode(&self, opcode: u16) -> Instruction {
+    fn decode(&self, opcode: u16) -> Result<Instruction, DecodeError> {
         match opcode & 0xF000 {
             0x0000 => {
                 match opcode {
-                    0x00E0 => return Instruction::CLS(),
-                    0x00EE => return Instruction::RET(),
-                    _ => panic!("Invalid Opcode")
+                    0x00E0 => return Ok(Instruction::CLS()),
+                    0x00EE => return Ok(Instruction::RET()),
+                    _ => Err(DecodeError{opcode: opcode})
                 }
             },
-            0x1000 => return Instruction::JP(opcode & 0x0FFF),
-            0x2000 => return Instruction::CALL(opcode & 0x0FFF),
-            0x3000 => return Instruction::SEVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8),
-            0x4000 => return Instruction::SNEVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8),
-            0x5000 => return Instruction::SEVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-            0x6000 => return Instruction::LDVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8),
-            0x7000 => return Instruction::ADDVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8),
+            0x1000 => return Ok(Instruction::JP(opcode & 0x0FFF)),
+            0x2000 => return Ok(Instruction::CALL(opcode & 0x0FFF)),
+            0x3000 => return Ok(Instruction::SEVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8)),
+            0x4000 => return Ok(Instruction::SNEVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8)),
+            0x5000 => return Ok(Instruction::SEVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+            0x6000 => return Ok(Instruction::LDVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8)),
+            0x7000 => return Ok(Instruction::ADDVXB(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8)),
             0x8000 => {
                 match opcode & 0x000F {
-                    0x0000 => return Instruction::LDVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-                    0x0001 => return Instruction::ORVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-                    0x0002 => return Instruction::ANDVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-                    0x0003 => return Instruction::XORVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-                    0x0004 => return Instruction::ADDVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-                    0x0005 => return Instruction::SUBVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-                    0x0006 => return Instruction::SHR(nybble(opcode, 2) as usize),
-                    0x0007 => return Instruction::SUBNVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-                    0x000E => return Instruction::SHL(nybble(opcode, 2) as usize),
-                    _ => panic!("Invalid Opcode!!!")
+                    0x0000 => return Ok(Instruction::LDVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+                    0x0001 => return Ok(Instruction::ORVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+                    0x0002 => return Ok(Instruction::ANDVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+                    0x0003 => return Ok(Instruction::XORVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+                    0x0004 => return Ok(Instruction::ADDVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+                    0x0005 => return Ok(Instruction::SUBVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+                    0x0006 => return Ok(Instruction::SHR(nybble(opcode, 2) as usize)),
+                    0x0007 => return Ok(Instruction::SUBNVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+                    0x000E => return Ok(Instruction::SHL(nybble(opcode, 2) as usize)),
+                    _ => Err(DecodeError{opcode: opcode})
                 }
             },
-            0x9000 => return Instruction::SNEVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize),
-            0xA000 => return Instruction::LDI(opcode & 0x0FFF),
-            0xB000 => return Instruction::JR(opcode & 0x0FFF),
-            0xC000 => return Instruction::RND(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8),
-            0xD000 => return Instruction::DRAW(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize, (opcode & 0x000F) as u8),
+            0x9000 => return Ok(Instruction::SNEVXY(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize)),
+            0xA000 => return Ok(Instruction::LDI(opcode & 0x0FFF)),
+            0xB000 => return Ok(Instruction::JR(opcode & 0x0FFF)),
+            0xC000 => return Ok(Instruction::RND(nybble(opcode, 2) as usize, (opcode & 0x00FF) as u8)),
+            0xD000 => return Ok(Instruction::DRAW(nybble(opcode, 2) as usize, nybble(opcode, 1) as usize, (opcode & 0x000F) as u8)),
             0xE000 => {
                 match opcode & 0x00FF {
-                    0x009E => return Instruction::SKP(nybble(opcode, 2) as usize),
-                    0x00A1 => return Instruction::SKNP(nybble(opcode, 2) as usize),
-                    _ => panic!("Invalid Opcode")
+                    0x009E => return Ok(Instruction::SKP(nybble(opcode, 2) as usize)),
+                    0x00A1 => return Ok(Instruction::SKNP(nybble(opcode, 2) as usize)),
+                    _ => Err(DecodeError{opcode: opcode})
                 }
             },
             0xF000 => {
                 match opcode & 0x00FF {
-                    0x000A => return Instruction::LDVXK(nybble(opcode, 2) as usize),
-                    0x0015 => return Instruction::LDDTVX(nybble(opcode, 2) as usize),
-                    0x0018 => return Instruction::LDSTVX(nybble(opcode, 2) as usize),
-                    0x001E => return Instruction::ADDIVX(nybble(opcode, 2) as usize),
-                    0x0029 => return Instruction::LDFVX(nybble(opcode, 2) as usize),
-                    0x0033 => return Instruction::LDB(nybble(opcode, 2) as usize),
-                    0x0055 => return Instruction::LDIVX(nybble(opcode, 2) as usize),
-                    0x0065 => return Instruction::LDVXI(nybble(opcode, 2) as usize),
-                    _ => panic!("Invalid Opcode")
+                    0x000A => return Ok(Instruction::LDVXK(nybble(opcode, 2) as usize)),
+                    0x0015 => return Ok(Instruction::LDDTVX(nybble(opcode, 2) as usize)),
+                    0x0018 => return Ok(Instruction::LDSTVX(nybble(opcode, 2) as usize)),
+                    0x001E => return Ok(Instruction::ADDIVX(nybble(opcode, 2) as usize)),
+                    0x0029 => return Ok(Instruction::LDFVX(nybble(opcode, 2) as usize)),
+                    0x0033 => return Ok(Instruction::LDB(nybble(opcode, 2) as usize)),
+                    0x0055 => return Ok(Instruction::LDIVX(nybble(opcode, 2) as usize)),
+                    0x0065 => return Ok(Instruction::LDVXI(nybble(opcode, 2) as usize)),
+                    _ => Err(DecodeError{opcode: opcode})
                 }
             },
             _ => {
@@ -349,6 +359,12 @@ impl VirtualMachine {
     }
 }
 
+impl fmt::Debug for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Failed to decode opcode: {}", self.opcode)
+    }
+}
+
 /// Get the nybble `n` from `value`
 fn nybble(value: u16, n: u8) -> u8 {
     let shift = 4 * n;
@@ -370,7 +386,27 @@ fn bcd(value: u8) -> (u8, u8, u8) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn run(vm: &mut VirtualMachine, memory: Vec<u8>) {
+        vm.load_memory(memory);
+
+        loop {
+            match vm.step(1) {
+                Ok(_) => continue,
+                Err(e) => panic!("{:?}", e)
+            }
+        }
+    }
+
     #[test]
-    fn vm_works() {
+    #[should_panic]
+    fn test_invalid_opcode() {
+        let mut vm = VirtualMachine::new();
+
+        let program = vec![
+            0xFFFF
+        ];
+
+        run(&mut vm, program);
     }
 }
