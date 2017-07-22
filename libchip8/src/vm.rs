@@ -1,15 +1,21 @@
 extern crate rand;
 
+const MEMORY_SIZE: usize = 4096;
+const STACK_SIZE: usize = 16;
+const NUM_REGISTERS: usize = 16;
+
+const PROGRAM_START_ADDRESS: u16 = 0x200;
+
 /// Representation of Chip8 Virtual Machine
 pub struct VirtualMachine {
-    memory: [u8; 4096], // 4096 bytes of memory
-    stack:  [u16; 16],  // 16 bytes of stack
-    pc:     u16,        // program counter
-    sp:     u8,         // stack pointer
-    i:      u16,        // index register
-    v:     [u8; 16],    // general purpose registers
-    dt:    u8,          // delay timer
-    st:    u8           // sound timer
+    memory: [u8; MEMORY_SIZE],     // 4096 bytes of memory
+    stack:  [u16; STACK_SIZE],     // 16 bytes of stack
+    pc:     u16,                   // program counter
+    sp:     u8,                    // stack pointer
+    i:      u16,                   // index register
+    v:      [u8; NUM_REGISTERS],   // general purpose registers
+    dt:     u8,                    // delay timer
+    st:     u8                     // sound timer
 }
 
 /// Chip8 instructions
@@ -54,14 +60,14 @@ enum Instruction {
 impl VirtualMachine {
     pub fn new() -> VirtualMachine {
         let mut vm = VirtualMachine {
-            memory: [0; 4096],
-            stack:  [0; 16],
-            pc:     0x200,
+            memory: [0; MEMORY_SIZE],
+            stack:  [0; STACK_SIZE],
+            pc:     PROGRAM_START_ADDRESS,
             sp:     0x0,
             i:      0x0,
-            v:     [0; 16],
-            dt:    0,
-            st:    0
+            v:      [0; NUM_REGISTERS],
+            dt:     0,
+            st:     0
         };
 
         vm.load_font();
@@ -302,6 +308,18 @@ impl VirtualMachine {
                     self.v[i] = self.memory[addr];
                 }
             }
+        }
+    }
+
+    pub fn load_memory(&mut self, memory: Vec<u8>) {
+        if memory.len() > MEMORY_SIZE - (PROGRAM_START_ADDRESS as usize) {
+            panic!("provided memory will not fit in vm");
+        }
+
+        let program_start_offset = PROGRAM_START_ADDRESS as usize;
+
+        for (i, byte) in memory.iter().enumerate() {
+            self.memory[program_start_offset + i] = *byte;
         }
     }
 
