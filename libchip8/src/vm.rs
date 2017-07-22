@@ -14,7 +14,7 @@ pub struct VirtualMachine {
 
 /// Chip8 instructions
 enum Instruction {
-    SYS(),
+//    SYS(),
     CLS(),
     RET(),
     JP(u16),
@@ -153,7 +153,6 @@ impl VirtualMachine {
 
     fn execute(&mut self, instr: Instruction) {
         match instr {
-            Instruction::SYS() => {},
             Instruction::CLS() => {},
             Instruction::RET() => {
                 self.pc = self.stack[self.sp as usize];
@@ -282,7 +281,10 @@ impl VirtualMachine {
 
             },
             Instruction::LDB(x) => {
-
+                let (h, t, o) = bcd(self.v[x]);
+                self.memory[self.i as usize]       = h;
+                self.memory[(self.i + 1) as usize] = t;
+                self.memory[(self.i + 2) as usize] = o;
             },
             Instruction::LDIVX(x) => {
                 for i in 0..x {
@@ -305,6 +307,17 @@ fn nybble(value: u16, n: u8) -> u8 {
     let shift = 4 * n;
     let mask: u16 = 0x0F << shift;
     ((value & mask) >> shift) as u8
+}
+
+fn bcd(value: u8) -> (u8, u8, u8) {
+    let mut dec = value;
+    let h = dec % 10;
+    dec /= 10;
+    let t = dec % 10;
+    dec /= 10;
+    let o = dec % 10;
+
+    (h, t, o)
 }
 
 #[cfg(test)]
