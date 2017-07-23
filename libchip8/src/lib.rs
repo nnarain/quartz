@@ -1,6 +1,6 @@
 
 mod vm;
-use vm::VirtualMachine;
+pub use vm::VirtualMachine;
 
 pub struct Chip8 {
     vm: VirtualMachine
@@ -24,8 +24,5 @@ pub fn version() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
 
-    }
 }
