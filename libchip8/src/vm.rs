@@ -184,6 +184,8 @@ impl VirtualMachine {
             Instruction::CALL(addr) => {
                 self.stack[self.sp as usize] = self.pc;
                 self.sp += 1;
+
+                self.pc = addr;
             },
             Instruction::SEVXB(x, b) => {
                 if self.v[x] == b {
@@ -333,10 +335,26 @@ impl VirtualMachine {
         }
     }
 
+    pub fn get_register(&self, x: usize) -> u8 {
+        self.v[x]
+    }
+
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
+
+    pub fn get_sp(&self) -> u8 {
+        self.sp
+    }
+
+    pub fn get_stack(&self, i: usize) -> u16 {
+        self.stack[i]
+    }
+
     fn load_font(&mut self) {
         let fonts: [u8; 80] = [
             0xF0, 0x90, 0x90, 0x90, 0xF0,
-            0x20, 0260, 0x20, 0x20, 0x70,
+            0x20, 0x60, 0x20, 0x20, 0x70,
             0xF0, 0x10, 0xF0, 0x80, 0xF0,
             0xF0, 0x10, 0xF0, 0x10, 0xF0,
             0x90, 0x90, 0xF0, 0x10, 0x10,
@@ -387,13 +405,20 @@ fn bcd(value: u8) -> (u8, u8, u8) {
 mod tests {
     use super::*;
 
-    fn run(vm: &mut VirtualMachine, memory: Vec<u8>) {
+    fn run(vm: &mut VirtualMachine, memory: Vec<u8>, should_panic: bool) {
         vm.load_memory(memory);
 
         loop {
             match vm.step(1) {
                 Ok(_) => continue,
-                Err(e) => panic!("{:?}", e)
+                Err(e) => {
+                    if should_panic {
+                        panic!("{:?}", e)
+                    }
+                    else {
+                        break;
+                    }
+                }
             }
         }
     }
@@ -404,9 +429,42 @@ mod tests {
         let mut vm = VirtualMachine::new();
 
         let program = vec![
-            0xFFFF
+            0xFF,
+            0xFF
         ];
 
-        run(&mut vm, program);
+        run(&mut vm, program, true);
+    }
+
+    #[test]
+    fn test_jump() {
+        let mut vm = VirtualMachine::new();
+
+        let program = vec![
+            0x14, 0x50,
+            0xFF,
+            0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_pc(), 0x452u16);
+    }
+
+    #[test]
+    fn test_call() {
+        let mut vm = VirtualMachine::new();
+
+        let program = vec![
+            0x22, 0x50,
+            0xFF,
+            0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_pc(), 0x252u16);
+        assert_eq!(vm.get_sp(), 1);
+        assert_eq!(vm.get_stack(0), 0x0202);
     }
 }
