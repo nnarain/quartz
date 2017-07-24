@@ -353,6 +353,10 @@ impl VirtualMachine {
         self.stack[i]
     }
 
+    pub fn get_i(&self) -> u16 {
+        self.i
+    }
+
     fn load_font(&mut self) {
         let fonts: [u8; 80] = [
             0xF0, 0x90, 0x90, 0x90, 0xF0,
@@ -565,6 +569,23 @@ mod tests {
     }
 
     #[test]
+    fn test_skip_if_vx_not_equals_vy() {
+        let mut vm = VirtualMachine::new();
+
+        let program = vec![
+            0x60, 0xF0, // LD V0, $F0
+            0x61, 0x0F, // LD V0, $0F
+            0x90, 0x10, // SNE V0, VY
+            0x60, 0x00,
+            0xFF, 0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_pc(), 0x20A);
+    }
+
+    #[test]
     fn test_add_vx_kk() {
         let mut vm = VirtualMachine::new();
 
@@ -708,5 +729,34 @@ mod tests {
 
         assert_eq!(vm.get_register(0), 0x2);
         assert_eq!(vm.get_register(15), 1);
+    }
+
+    #[test]
+    fn test_load_i() {
+        let mut vm = VirtualMachine::new();
+
+        let program = vec![
+            0xAF, 0xFF, // LD I, $FFF
+            0xFF, 0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_i(), 0xFFF);
+    }
+
+    #[test]
+    fn test_jump_relative() {
+        let mut vm = VirtualMachine::new();
+
+        let program = vec![
+            0x60, 0x01, // LD V0, $01
+            0xB2, 0x50, // JR $250
+            0xFF, 0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_pc(), 0x253);
     }
 }
