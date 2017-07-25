@@ -161,6 +161,7 @@ impl VirtualMachine {
             },
             0xF000 => {
                 match opcode & 0x00FF {
+                    0x0007 => return Ok(Instruction::LDVXDT(nybble(opcode, 2) as usize)),
                     0x000A => return Ok(Instruction::LDVXK(nybble(opcode, 2) as usize)),
                     0x0015 => return Ok(Instruction::LDDTVX(nybble(opcode, 2) as usize)),
                     0x0018 => return Ok(Instruction::LDSTVX(nybble(opcode, 2) as usize)),
@@ -300,7 +301,7 @@ impl VirtualMachine {
                 }
             },
             Instruction::LDVXDT(x) => {
-
+                self.v[x] = self.dt;
             },
             Instruction::LDVXK(x) => {
                 match self.key_wait {
@@ -357,6 +358,14 @@ impl VirtualMachine {
         }
     }
 
+    pub fn key(&mut self, k: u8, val: bool) {
+        self.keys[k as usize] = val;
+    }
+
+    pub fn set_key_wait<FnType: 'static + FnMut() -> u8>(&mut self, key_wait: FnType) {
+        self.key_wait = Some(Box::new(key_wait));
+    }
+
     pub fn get_register(&self, x: usize) -> u8 {
         self.v[x]
     }
@@ -375,6 +384,14 @@ impl VirtualMachine {
 
     pub fn get_i(&self) -> u16 {
         self.i
+    }
+
+    pub fn get_dt(&self) -> u8 {
+        self.dt
+    }
+
+    pub fn get_st(&self) -> u8 {
+        self.st
     }
 
     fn load_font(&mut self) {
@@ -400,14 +417,6 @@ impl VirtualMachine {
         for (i, item) in fonts.iter().enumerate() {
             self.memory[i] = *item;
         }
-    }
-
-    pub fn key(&mut self, k: u8, val: bool) {
-        self.keys[k as usize] = val;
-    }
-
-    pub fn set_key_wait<FnType: 'static + FnMut() -> u8>(&mut self, key_wait: FnType) {
-        self.key_wait = Some(Box::new(key_wait));
     }
 }
 
@@ -797,6 +806,24 @@ mod tests {
             0x60, 0x00, // LD V0, $00
             0x61, 0x01, // LD V1, $01
             0xE0, 0x9E, // SKP V0
+            0x61, 0x04, // LD V1, $04; skipped
+            0xFF, 0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_register(1), 1);
+    }
+
+    #[test]
+    fn test_skip_if_key_not_pressed() {
+        let mut vm = VirtualMachine::new();
+        vm.key(0, false);
+
+        let program = vec![
+            0x60, 0x00, // LD V0, $00
+            0x61, 0x01, // LD V1, $01
+            0xE0, 0xA1, // SKNP V0
             0x61, 0x04, // LD V1, $04; skipped
             0xFF, 0xFF  // stop
         ];
