@@ -362,8 +362,8 @@ impl VirtualMachine {
         self.keys[k as usize] = val;
     }
 
-    pub fn set_key_wait<FnType: 'static + FnMut() -> u8>(&mut self, key_wait: FnType) {
-        self.key_wait = Some(Box::new(key_wait));
+    pub fn set_key_wait(&mut self, key_wait: Box<FnMut() -> u8>) {
+        self.key_wait = Some(key_wait);
     }
 
     pub fn get_register(&self, x: usize) -> u8 {
