@@ -5,6 +5,7 @@ use std::num::Wrapping;
 const MEMORY_SIZE: usize = 4096;
 const STACK_SIZE: usize = 16;
 const NUM_REGISTERS: usize = 16;
+const NUM_KEYS: usize = 16;
 
 const PROGRAM_START_ADDRESS: u16 = 0x200;
 
@@ -17,7 +18,10 @@ pub struct VirtualMachine {
     i:      u16,                   // index register
     v:      [u8; NUM_REGISTERS],   // general purpose registers
     dt:     u8,                    // delay timer
-    st:     u8                     // sound timer
+    st:     u8,                    // sound timer
+
+    keys: [bool; NUM_KEYS],              // key values
+    key_wait: Option<Box<FnMut() -> u8>> // function that waits for key press and returns value
 }
 
 /// Chip8 instructions
@@ -73,7 +77,10 @@ impl VirtualMachine {
             i:      0x0,
             v:      [0; NUM_REGISTERS],
             dt:     0,
-            st:     0
+            st:     0,
+
+            keys:   [false; NUM_KEYS],
+            key_wait: Some(Box::new(||{0}))
         };
 
         vm.load_font();
@@ -281,16 +288,29 @@ impl VirtualMachine {
 
             },
             Instruction::SKP(x) => {
-
+                let k = self.v[x];
+                if self.keys[k as usize] {
+                    self.pc += 2;
+                }
             },
             Instruction::SKNP(x) => {
-
+                let k = self.v[x];
+                if !self.keys[k as usize] {
+                    self.pc += 2;
+                }
             },
             Instruction::LDVXDT(x) => {
 
             },
             Instruction::LDVXK(x) => {
-
+                match self.key_wait {
+                    Some(ref mut key_wait) => {
+                        self.v[x] = key_wait();
+                    },
+                    None => {
+                        panic!("Keypad instruction used without the key_wait being set");
+                    }
+                }
             },
             Instruction::LDDTVX(x) => {
                 self.dt = self.v[x];
@@ -380,6 +400,14 @@ impl VirtualMachine {
         for (i, item) in fonts.iter().enumerate() {
             self.memory[i] = *item;
         }
+    }
+
+    pub fn key(&mut self, k: u8, val: bool) {
+        self.keys[k as usize] = val;
+    }
+
+    pub fn set_key_wait<FnType: 'static + FnMut() -> u8>(&mut self, key_wait: FnType) {
+        self.key_wait = Some(Box::new(key_wait));
     }
 }
 
@@ -758,5 +786,23 @@ mod tests {
         run(&mut vm, program, false);
 
         assert_eq!(vm.get_pc(), 0x253);
+    }
+
+    #[test]
+    fn test_skip_if_key_pressed() {
+        let mut vm = VirtualMachine::new();
+        vm.key(0, true);
+
+        let program = vec![
+            0x60, 0x00, // LD V0, $00
+            0x61, 0x01, // LD V1, $01
+            0xE0, 0x9E, // SKP V0
+            0x61, 0x04, // LD V1, $04; skipped
+            0xFF, 0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_register(1), 1);
     }
 }
