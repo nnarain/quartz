@@ -323,7 +323,7 @@ impl VirtualMachine {
                 self.i = self.i + (self.v[x] as u16);
             },
             Instruction::LDFVX(x) => {
-
+                self.i = (self.v[x] * 5) as u16;
             },
             Instruction::LDB(x) => {
                 let (h, t, o) = bcd(self.v[x]);
@@ -831,5 +831,20 @@ mod tests {
         run(&mut vm, program, false);
 
         assert_eq!(vm.get_register(1), 1);
+    }
+
+    #[test]
+    fn test_ld_f() {
+        let mut vm = VirtualMachine::new();
+
+        let program = vec![
+            0x60, 0x04, // LD V0, $00
+            0xF0, 0x29, // LD F, V0
+            0xFF, 0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_i(), 20);
     }
 }
