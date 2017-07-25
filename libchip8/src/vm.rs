@@ -362,8 +362,8 @@ impl VirtualMachine {
         self.keys[k as usize] = val;
     }
 
-    pub fn set_key_wait<FnType: 'static + FnMut() -> u8>(&mut self, key_wait: FnType) {
-        self.key_wait = Some(Box::new(key_wait));
+    pub fn set_key_wait(&mut self, key_wait: Box<FnMut() -> u8>) {
+        self.key_wait = Some(key_wait);
     }
 
     pub fn get_register(&self, x: usize) -> u8 {
@@ -831,6 +831,24 @@ mod tests {
         run(&mut vm, program, false);
 
         assert_eq!(vm.get_register(1), 1);
+    }
+
+    #[test]
+    fn test_key_wait() {
+        let mut vm = VirtualMachine::new();
+        vm.set_key_wait(Box::new(|| {
+            4
+        }));
+
+        let program = vec![
+            0x60, 0x00, // LD V0, $00
+            0xF0, 0x0A, // LD Vx, K
+            0xFF, 0xFF  // stop
+        ];
+
+        run(&mut vm, program, false);
+
+        assert_eq!(vm.get_register(0), 4);
     }
 
     #[test]
