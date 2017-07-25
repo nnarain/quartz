@@ -1,14 +1,20 @@
 
-mod cpu;
-use cpu::Cpu;
+mod vm;
+pub use vm::VirtualMachine;
 
 pub struct Chip8 {
-    cpu: Cpu
+    vm: VirtualMachine
 }
 
 impl Chip8 {
     pub fn new() -> Chip8 {
-        Chip8{cpu: Cpu::new()}
+        Chip8 {
+            vm: VirtualMachine::new()
+        }
+    }
+
+    pub fn update(&mut self, steps: u32) {
+        self.vm.step(steps);
     }
 }
 
@@ -18,8 +24,5 @@ pub fn version() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
 
-    }
 }
