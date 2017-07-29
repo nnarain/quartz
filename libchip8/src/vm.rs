@@ -26,7 +26,8 @@ pub struct VirtualMachine {
     keys: [bool; NUM_KEYS],              // key values
     key_wait: Option<Box<FnMut() -> u8>>, // function that waits for key press and returns value
 
-    display_memory: [u8; FRAMEBUFFER_SIZE] // display memory
+    display_memory: [u8; FRAMEBUFFER_SIZE], // display memory
+    on_display_update: Option<Box<FnMut() -> ()>>
 }
 
 /// Chip8 instructions
