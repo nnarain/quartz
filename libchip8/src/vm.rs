@@ -6,6 +6,9 @@ const MEMORY_SIZE: usize = 4096;
 const STACK_SIZE: usize = 16;
 const NUM_REGISTERS: usize = 16;
 const NUM_KEYS: usize = 16;
+const DISPLAY_WIDTH: usize = 64;
+const DISPLAY_HEIGHT: usize = 32;
+const FRAMEBUFFER_SIZE: usize = 3 * DISPLAY_WIDTH * DISPLAY_HEIGHT;
 
 const PROGRAM_START_ADDRESS: u16 = 0x200;
 
@@ -21,7 +24,9 @@ pub struct VirtualMachine {
     st:     u8,                    // sound timer
 
     keys: [bool; NUM_KEYS],              // key values
-    key_wait: Option<Box<FnMut() -> u8>> // function that waits for key press and returns value
+    key_wait: Option<Box<FnMut() -> u8>>, // function that waits for key press and returns value
+
+    display_memory: [u8; FRAMEBUFFER_SIZE] // display memory
 }
 
 /// Chip8 instructions
@@ -80,7 +85,9 @@ impl VirtualMachine {
             st:     0,
 
             keys:   [false; NUM_KEYS],
-            key_wait: Some(Box::new(||{0}))
+            key_wait: Some(Box::new(||{0})),
+
+            display_memory: [0; FRAMEBUFFER_SIZE]
         };
 
         vm.load_font();
@@ -286,7 +293,7 @@ impl VirtualMachine {
                 self.v[x] = b & rand::random::<u8>();
             },
             Instruction::DRAW(x, y, n) => {
-
+                self.draw(x, y, n as usize);
             },
             Instruction::SKP(x) => {
                 let k = self.v[x];
@@ -392,6 +399,51 @@ impl VirtualMachine {
 
     pub fn get_st(&self) -> u8 {
         self.st
+    }
+
+    fn draw(&mut self, x: usize, y: usize, n: usize) {
+        let start_address = self.i as usize;
+
+        let x = self.v[x] as usize;
+        let y = self.v[y] as usize;
+
+        // for bytes in sprite
+        for i in 0..n {
+            let byte = self.memory[start_address + i];
+            let pixel_y = y + i;
+            // pixels on/off state is encoded in the bits
+            for (c, bit) in (0..8).rev().enumerate() {
+                let pixel_x = x + c;
+                // state of current pixel
+                let state = byte & (1 << bit) != 0;
+                let prev_state = self.is_pixel_set(pixel_x, pixel_y);
+
+                let current_state = state ^ prev_state;
+                self.set_pixel(pixel_x, pixel_y, current_state);
+            }
+        }
+    }
+
+    fn set_pixel(&mut self, x: usize, y: usize, is_on: bool) {
+        let index = self.pixel_index(x, y);
+
+        let value = if is_on { 255u8 } else { 0u8 };
+
+        // write value into framebuffer
+        self.display_memory[index + 0] = value;
+        self.display_memory[index + 1] = value;
+        self.display_memory[index + 2] = value;
+    }
+
+    fn is_pixel_set(&self, x: usize, y: usize) -> bool {
+        let index = self.pixel_index(x, y);
+
+        // check if the specified pixel is on
+        self.display_memory[index] == 255
+    }
+
+    fn pixel_index(&self, x: usize, y: usize) -> usize {
+        (y * (DISPLAY_WIDTH * 3)) + x
     }
 
     fn load_font(&mut self) {
