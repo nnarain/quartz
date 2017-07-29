@@ -88,7 +88,8 @@ impl VirtualMachine {
             keys:   [false; NUM_KEYS],
             key_wait: Some(Box::new(||{0})),
 
-            display_memory: [0; FRAMEBUFFER_SIZE]
+            display_memory: [0; FRAMEBUFFER_SIZE],
+            on_display_update: None
         };
 
         vm.load_font();
@@ -189,7 +190,9 @@ impl VirtualMachine {
 
     fn execute(&mut self, instr: Instruction) {
         match instr {
-            Instruction::CLS() => {},
+            Instruction::CLS() => {
+                self.clear_display();
+            },
             Instruction::RET() => {
                 self.pc = self.stack[self.sp as usize];
                 self.sp -= 1;
@@ -422,6 +425,24 @@ impl VirtualMachine {
                 let current_state = state ^ prev_state;
                 self.set_pixel(pixel_x, pixel_y, current_state);
             }
+        }
+
+        match self.on_display_update {
+            Some(ref mut on_display_update) => on_display_update(),
+            None => {}
+        }
+    }
+
+    fn clear_display(&mut self) {
+        for x in 0..DISPLAY_WIDTH {
+            for y in 0..DISPLAY_HEIGHT {
+                self.set_pixel(x, y, false);
+            }
+        }
+
+        match self.on_display_update {
+            Some(ref mut on_display_update) => on_display_update(),
+            None => {}
         }
     }
 

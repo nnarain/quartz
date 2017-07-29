@@ -2,6 +2,7 @@ extern crate libchip8;
 use libchip8::Chip8;
 
 extern crate piston_window;
+extern crate image as im;
 use piston_window::*;
 
 use std::env;
@@ -28,9 +29,11 @@ fn main() {
     // );
 
     // open a window
+    let opengl = OpenGL::V3_2;
     let mut window: PistonWindow =
         WindowSettings::new("Quartz", [640, 480])
         .exit_on_esc(true)
+        .opengl(opengl)
         .build()
         .unwrap();
 
