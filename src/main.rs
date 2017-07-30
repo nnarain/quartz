@@ -1,8 +1,8 @@
 extern crate libchip8;
-use libchip8::Chip8;
-
+use libchip8::*;
 extern crate piston_window;
 extern crate image as im;
+
 use piston_window::*;
 
 use std::env;
@@ -10,39 +10,78 @@ use std::process;
 use std::fs::File;
 use std::io::prelude::*;
 use std::error::Error;
+use std::cell::Cell;
+
+const WINDOW_WIDTH: u32 = 640;
+const WINDOW_HEIGHT: u32 = 480;
 
 fn main() {
-    // get rom filename from command line options
-    // let rom_file = get_rom_filename(env::args()).unwrap_or_else(
-    //     |err| {
-    //         println!("{:?}", err);
-    //         process::exit(1);
-    //     }
-    // );
-    //
-    // // read rom file
-    // let rom = load_rom_file(rom_file).unwrap_or_else(
-    //     |err| {
-    //         println!("{:?}", err);
-    //         process::exit(1);
-    //     }
-    // );
+    let update_display = Cell::new(false);
+    let mut vm = VirtualMachine::new();
 
-    // open a window
+    //get rom filename from command line options
+    let rom_file = get_rom_filename(env::args()).unwrap_or_else(
+        |err| {
+            println!("{:?}", err);
+            process::exit(1);
+        }
+    );
+
+    // read rom file
+    let rom = load_rom_file(rom_file).unwrap_or_else(
+        |err| {
+            println!("{:?}", err);
+            process::exit(1);
+        }
+    );
+
+    vm.load_memory(rom);
+
     let opengl = OpenGL::V3_2;
     let mut window: PistonWindow =
-        WindowSettings::new("Quartz", [640, 480])
+        WindowSettings::new("Quartz", (WINDOW_WIDTH, WINDOW_HEIGHT))
         .exit_on_esc(true)
         .opengl(opengl)
         .build()
         .unwrap();
 
-    while let Some(event) = window.next() {
-        window.draw_2d(&event,
-            |context, graphics| {
+    let mut framebuffer = im::ImageBuffer::new(64, 32);
+    let mut display = Texture::from_image(
+            &mut window.factory,
+            &framebuffer,
+            &TextureSettings::new()
+        ).unwrap();
 
+    vm.set_on_display_update(Box::new(||{
+        update_display.set(true);
+    }));
+
+    while let Some(e) = window.next() {
+        if update_display.get() {
+            for x in 0..64 {
+                for y in 0..32 {
+                    framebuffer.put_pixel(x, y, im::Rgba([255, 0, 0, 255]));
+                }
             }
-        );
+            println!("update");
+            display.update(&mut window.encoder, &framebuffer).unwrap();
+            update_display.set(false);
+        }
+
+        if let Some(_) = e.render_args() {
+        //    display.update(&mut window.encoder, &framebuffer).unwrap();
+            window.draw_2d(&e, |c, g| {
+                clear([1.0; 4], g);
+                image(&display, c.transform, g);
+            });
+        }
+
+        vm.step(512).unwrap_or_else(
+            |e| {
+                println!("{:?}", e);
+                process::exit(1);
+            }
+        )
     }
 }
 

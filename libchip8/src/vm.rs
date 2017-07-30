@@ -13,7 +13,7 @@ const FRAMEBUFFER_SIZE: usize = 3 * DISPLAY_WIDTH * DISPLAY_HEIGHT;
 const PROGRAM_START_ADDRESS: u16 = 0x200;
 
 /// Representation of Chip8 Virtual Machine
-pub struct VirtualMachine {
+pub struct VirtualMachine<'a> {
     memory: [u8; MEMORY_SIZE],     // 4096 bytes of memory
     stack:  [u16; STACK_SIZE],     // 16 bytes of stack
     pc:     u16,                   // program counter
@@ -24,10 +24,10 @@ pub struct VirtualMachine {
     st:     u8,                    // sound timer
 
     keys: [bool; NUM_KEYS],              // key values
-    key_wait: Option<Box<FnMut() -> u8>>, // function that waits for key press and returns value
+    key_wait: Option<Box<FnMut() -> u8 + 'a>>, // function that waits for key press and returns value
 
     display_memory: [u8; FRAMEBUFFER_SIZE], // display memory
-    on_display_update: Option<Box<FnMut() -> ()>>
+    on_display_update: Option<Box<FnMut() + 'a>>
 }
 
 /// Chip8 instructions
@@ -73,8 +73,8 @@ pub struct DecodeError {
     opcode: u16
 }
 
-impl VirtualMachine {
-    pub fn new() -> VirtualMachine {
+impl<'a> VirtualMachine<'a> {
+    pub fn new() -> Self {
         let mut vm = VirtualMachine {
             memory: [0; MEMORY_SIZE],
             stack:  [0; STACK_SIZE],
@@ -373,8 +373,12 @@ impl VirtualMachine {
         self.keys[k as usize] = val;
     }
 
-    pub fn set_key_wait(&mut self, key_wait: Box<FnMut() -> u8>) {
+    pub fn set_key_wait(&mut self, key_wait: Box<FnMut() -> u8 + 'a>) {
         self.key_wait = Some(key_wait);
+    }
+
+    pub fn set_on_display_update(&mut self, on_display_update: Box<FnMut() + 'a>) {
+        self.on_display_update = Some(on_display_update);
     }
 
     pub fn get_register(&self, x: usize) -> u8 {
@@ -496,7 +500,7 @@ impl VirtualMachine {
 
 impl fmt::Debug for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Failed to decode opcode: {}", self.opcode)
+        write!(f, "Failed to decode opcode: {:X}", self.opcode)
     }
 }
 
