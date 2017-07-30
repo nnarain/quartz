@@ -58,12 +58,13 @@ fn main() {
 
     while let Some(e) = window.next() {
         if update_display.get() {
-            for x in 0..64 {
-                for y in 0..32 {
-                    framebuffer.put_pixel(x, y, im::Rgba([255, 0, 0, 255]));
+            for x in 0..64u32 {
+                for y in 0..32u32 {
+                    let (r, g, b) = vm.get_pixel(x as usize, y as usize);
+                    framebuffer.put_pixel(x, y, im::Rgba([r, g, b, 255]));
                 }
             }
-            println!("update");
+
             display.update(&mut window.encoder, &framebuffer).unwrap();
             update_display.set(false);
         }
@@ -72,7 +73,7 @@ fn main() {
         //    display.update(&mut window.encoder, &framebuffer).unwrap();
             window.draw_2d(&e, |c, g| {
                 clear([1.0; 4], g);
-                image(&display, c.transform, g);
+                image(&display, c.transform.scale(5.0, 5.0), g);
             });
         }
 

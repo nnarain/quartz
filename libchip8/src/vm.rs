@@ -409,6 +409,16 @@ impl<'a> VirtualMachine<'a> {
         self.st
     }
 
+    pub fn get_pixel(&self, x: usize, y: usize) -> (u8, u8, u8) {
+        let index = self.pixel_index(x, y);
+
+        let r = self.display_memory[index + 0];
+        let g = self.display_memory[index + 1];
+        let b = self.display_memory[index + 2];
+
+        (r, g, b)
+    }
+
     fn draw(&mut self, x: usize, y: usize, n: usize) {
         let start_address = self.i as usize;
 
