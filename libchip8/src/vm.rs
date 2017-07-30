@@ -31,6 +31,7 @@ pub struct VirtualMachine<'a> {
 }
 
 /// Chip8 instructions
+#[derive(Debug)]
 enum Instruction {
 //    SYS(),
     CLS(),
@@ -194,8 +195,8 @@ impl<'a> VirtualMachine<'a> {
                 self.clear_display();
             },
             Instruction::RET() => {
-                self.pc = self.stack[self.sp as usize];
                 self.sp -= 1;
+                self.pc = self.stack[self.sp as usize];
             },
             Instruction::JP(addr) => {
                 self.pc = addr;
@@ -505,6 +506,12 @@ impl<'a> VirtualMachine<'a> {
         for (i, item) in fonts.iter().enumerate() {
             self.memory[i] = *item;
         }
+    }
+}
+
+impl fmt::Display for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
