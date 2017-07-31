@@ -429,10 +429,10 @@ impl<'a> VirtualMachine<'a> {
         // for bytes in sprite
         for i in 0..n {
             let byte = self.memory[start_address + i];
-            let pixel_y = y + i;
+            let pixel_y = (y + i) % DISPLAY_HEIGHT;
             // pixels on/off state is encoded in the bits
             for (c, bit) in (0..8).rev().enumerate() {
-                let pixel_x = x + c;
+                let pixel_x = (x + c) % DISPLAY_WIDTH;
                 // state of current pixel
                 let state = byte & (1 << bit) != 0;
                 let prev_state = self.is_pixel_set(pixel_x, pixel_y);
