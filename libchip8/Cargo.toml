@@ -2,6 +2,18 @@
 name = "libchip8"
 version = "0.1.0"
 authors = ["Natesh Narain <nnaraindev@gmail.com>"]
+description = "A Chip8 emulation library"
+
+repository = "https://github.com/nnarain/quartz"
+
+readme = "README.md"
+
+license = "MIT"
+
+keywords = ["chip8"]
+
+[badges]
+travis-ci = { repository = "https://github.com/nnarain/quartz", branch = "master" }
 
 [dependencies]
 rand = "0.3.15"
