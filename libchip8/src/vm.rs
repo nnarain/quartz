@@ -425,15 +425,15 @@ impl<'a> VirtualMachine<'a> {
     }
 
     fn draw(&mut self, x: usize, y: usize, n: usize) {
-        let start_address = 0x0000 as usize;//self.i as usize;
+        let start_address = self.i as usize;
 
-        let x: usize = 0;//self.v[x] as usize;
-        let y: usize = 0;//self.v[y] as usize;
+        let x = self.v[x] as usize;
+        let y = self.v[y] as usize;
 
         // for bytes in sprite
-        for i in 0..5 {
+        for i in 0..n {
             let byte = self.memory[start_address + i];
-            
+
             let pixel_y = (y + i) % DISPLAY_HEIGHT;
             // pixels on/off state is encoded in the bits
             for (c, bit) in (0..8).rev().enumerate() {
@@ -445,7 +445,7 @@ impl<'a> VirtualMachine<'a> {
                 let current_state = state ^ prev_state;
                 self.v[0xF] = current_state as u8;
 
-                self.set_pixel(pixel_x, pixel_y, true);
+                self.set_pixel(pixel_x, pixel_y, current_state);
             }
         }
 
@@ -487,7 +487,7 @@ impl<'a> VirtualMachine<'a> {
     }
 
     fn pixel_index(&self, x: usize, y: usize) -> usize {
-        (y * (DISPLAY_WIDTH * 3)) + x
+        (y * (DISPLAY_WIDTH * 3)) + (x * 3)
     }
 
     fn load_font(&mut self) {
