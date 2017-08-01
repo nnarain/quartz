@@ -227,7 +227,7 @@ impl<'a> Chip8<'a> {
                 self.v[x] = b;
             },
             Instruction::ADDVXB(x, b) => {
-                self.v[x] += b;
+                self.v[x] = (Wrapping(self.v[x]) + Wrapping(b)).0;
             },
             Instruction::LDVXY(x, y) => {
                 self.v[x] = self.v[y];
@@ -278,7 +278,7 @@ impl<'a> Chip8<'a> {
                     self.v[0xF] = 0;
                 }
 
-                self.v[x] = self.v[y] - self.v[x];
+                self.v[x] = (Wrapping(self.v[y]) - Wrapping(self.v[x])).0;
             },
             Instruction::SHL(x) => {
                 self.v[0xF] = (self.v[x] & 0x80) >> 7;
@@ -333,7 +333,7 @@ impl<'a> Chip8<'a> {
                 self.st = self.v[x];
             },
             Instruction::ADDIVX(x) => {
-                self.i = self.i + (self.v[x] as u16);
+                self.i = (Wrapping(self.i) + Wrapping(self.v[x] as u16)).0;
             },
             Instruction::LDFVX(x) => {
                 self.i = (self.v[x] * 5) as u16;
@@ -538,11 +538,11 @@ fn nybble(value: u16, n: u8) -> u8 {
 
 fn bcd(value: u8) -> (u8, u8, u8) {
     let mut dec = value;
-    let h = dec % 10;
+    let o = dec % 10;
     dec /= 10;
     let t = dec % 10;
     dec /= 10;
-    let o = dec % 10;
+    let h = dec % 10;
 
     (h, t, o)
 }
@@ -554,5 +554,24 @@ pub fn version() -> &'static str {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
+    #[test]
+    fn test_bcd() {
+        let (h, t, o) = bcd(255);
+
+        assert_eq!(h, 2);
+        assert_eq!(t, 5);
+        assert_eq!(o, 5);
+    }
+
+    #[test]
+    fn test_nybble() {
+        let value = 0xDEADu16;
+
+        assert_eq!(nybble(value, 3), 0xD);
+        assert_eq!(nybble(value, 2), 0xE);
+        assert_eq!(nybble(value, 1), 0xA);
+        assert_eq!(nybble(value, 0), 0xD);
+    }
 }
