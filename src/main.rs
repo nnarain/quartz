@@ -16,8 +16,8 @@ use std::error::Error;
 use std::cell::Cell;
 use std::time::Duration;
 
-const WINDOW_WIDTH: u32 = 800;
-const WINDOW_HEIGHT: u32 = 600;
+const WINDOW_WIDTH: u32 = 640;
+const WINDOW_HEIGHT: u32 = 480;
 
 fn main() {
     let update_display = Cell::new(false);
