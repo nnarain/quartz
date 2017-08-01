@@ -27,8 +27,7 @@ fn test_invalid_opcode() {
     let mut vm = Chip8::new();
 
     let program = vec![
-        0xFF,
-        0xFF
+        0xFF, 0xFF // stop
     ];
 
     run(&mut vm, program, true);
@@ -39,9 +38,8 @@ fn test_jump() {
     let mut vm = Chip8::new();
 
     let program = vec![
-        0x14, 0x50,
-        0xFF,
-        0xFF  // stop
+        0x14, 0x50, // JP 450
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -55,8 +53,7 @@ fn test_call() {
 
     let program = vec![
         0x22, 0x50,
-        0xFF,
-        0xFF  // stop
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -75,8 +72,7 @@ fn test_load_vx() {
         0x61, 0x02, // LD V1, 0x02
         0x62, 0x03, // LD V2, 0x03
         0x63, 0x04, // LD V3, 0x04
-        0xFF,       // stop
-        0xFF        //
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -95,8 +91,7 @@ fn test_load_vx_vy() {
         0x60, 0x01, // LD V0, 0x01
         0x61, 0x02, // LD V1, 0x02
         0x80, 0x10, // LD V0, V1
-        0xFF,       // stop
-        0xFF        //
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -183,7 +178,7 @@ fn test_add_vx_kk() {
 
     let program = vec![
         0x60, 0x05, // LD V0, $05
-        0x70, 0x05, // SNE V0, $1E
+        0x70, 0x05, // ADD V0, $1E
         0xFF, 0xFF  // stop
     ];
 
@@ -280,7 +275,7 @@ fn test_subn_vx_vy() {
 
     let program = vec![
         0x60, 0x04, // LD V0, $04
-        0x61, 0x05, // LD V0, $05
+        0x61, 0x05, // LD V1, $05
         0x80, 0x17, // SUB V0, V1
         0xFF, 0xFF  // stop
     ];
@@ -289,6 +284,23 @@ fn test_subn_vx_vy() {
 
     assert_eq!(vm.get_register(0), 1);
     assert_eq!(vm.get_register(15), 1);
+}
+
+#[test]
+fn test_subn_underflow() {
+    let mut vm = Chip8::new();
+
+    let program = vec![
+        0x60, 0x05, // LD V0, $05
+        0x61, 0x04, // LD V1, $04
+        0x80, 0x17, // SUB V0, V1
+        0xFF, 0xFF  // stop
+    ];
+
+    run(&mut vm, program, false);
+
+    assert_eq!(vm.get_register(0), 0xFF);
+    assert_eq!(vm.get_register(15), 0);
 }
 
 #[test]
@@ -419,4 +431,19 @@ fn test_ld_f() {
     run(&mut vm, program, false);
 
     assert_eq!(vm.get_i(), 20);
+}
+
+#[test]
+fn test_add_overflow() {
+    let mut vm = Chip8::new();
+
+    let program = vec![
+        0x60, 0xFF, // LD V0, $05
+        0x70, 0x01, // ADD V0, $01
+        0xFF, 0xFF  // stop
+    ];
+
+    run(&mut vm, program, false);
+
+    assert_eq!(vm.get_register(0), 0x00);
 }
