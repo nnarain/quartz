@@ -1,0 +1,19 @@
+dist: trusty
+sudo: required
+
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
+
+install:
+  - sudo apt-get install libsdl2-dev -qq
+
+script:
+  - cargo build --release
+  - cargo test --release --package libchip8
