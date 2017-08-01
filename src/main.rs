@@ -21,7 +21,7 @@ const WINDOW_HEIGHT: u32 = 600;
 
 fn main() {
     let update_display = Cell::new(false);
-    let mut vm = VirtualMachine::new();
+    let mut vm = Chip8::new();
 
     vm.set_on_display_update(Box::new(
         || {
