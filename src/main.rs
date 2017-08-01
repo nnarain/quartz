@@ -78,19 +78,6 @@ fn main() {
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
 
         if update_display.get() {
-
-            // if let Some(surface_buffer) = canvas_surface.without_lock_mut() {
-            //     let display_memory = vm.get_display_memory();
-            //
-            //     for x in 0..64 {
-            //         for y in 0..32 {
-            //             let index = (y * 64) + x;
-            //             surface_buffer[index] = display_memory[index];
-            //         }
-            //     }
-            // }
-            println!("updating display");
-
             canvas.clear();
             display.update(None, vm.get_display_memory(), 64 * 3).unwrap();
             canvas.copy(&display, None, Some(Rect::new(0,0, WINDOW_WIDTH, WINDOW_HEIGHT))).unwrap();
