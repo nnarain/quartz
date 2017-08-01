@@ -58,13 +58,14 @@ fn main() {
     let mut display = texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, 64, 32).unwrap();
 
     canvas.set_draw_color(Color::RGB(255, 255, 255));
+    canvas.clear();
+    canvas.present();
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     vm.load_memory(rom);
 
     'running: loop {
-        canvas.clear();
 
         for event in event_pump.poll_iter() {
             match event {
@@ -89,15 +90,16 @@ fn main() {
             //     }
             // }
             println!("updating display");
+
+            canvas.clear();
             display.update(None, vm.get_display_memory(), 64 * 3).unwrap();
             canvas.copy(&display, None, Some(Rect::new(0,0, WINDOW_WIDTH, WINDOW_HEIGHT))).unwrap();
+            canvas.present();
 
             update_display.set(false);
         }
 
         vm.step(512).unwrap();
-
-        canvas.present();
     }
 }
 
