@@ -410,6 +410,10 @@ impl<'a> VirtualMachine<'a> {
         self.st
     }
 
+    pub fn get_display_memory(&self) -> &[u8] {
+        &self.display_memory
+    }
+
     pub fn get_pixel(&self, x: usize, y: usize) -> (u8, u8, u8) {
         let index = self.pixel_index(x, y);
 
