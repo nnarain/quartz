@@ -101,7 +101,7 @@ fn main() {
                 Event::KeyDown {keycode, ..} =>  {
                     if let Some(k) = keycode {
                         if key_map.contains_key(&k) {
-                            vm.key(key_map[&k], true);
+                            vm.key(key_map[&k], false);
                         }
                     }
                 },
