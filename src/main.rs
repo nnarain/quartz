@@ -22,13 +22,6 @@ const WINDOW_HEIGHT: u32 = 480;
 
 fn main() {
     let update_display = Cell::new(false);
-    let mut vm = Chip8::new();
-
-    vm.set_on_display_update(Box::new(
-        || {
-            update_display.set(true);
-        }
-    ));
 
     let filename = get_rom_filename(env::args()).unwrap_or_else(
         |e| {
@@ -44,6 +37,7 @@ fn main() {
         }
     );
 
+    // initialize SDL2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -54,7 +48,6 @@ fn main() {
         .unwrap();
 
     let mut canvas = window.into_canvas().build().unwrap();
-    //let mut display = Surface::new(64, 32, PixelFormatEnum::RGB24).unwrap();
     let texture_creator = canvas.texture_creator();
     let mut display = texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, 64, 32).unwrap();
 
@@ -63,8 +56,6 @@ fn main() {
     canvas.present();
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-
-    vm.load_memory(rom);
 
     let mut key_map = HashMap::new();
     key_map.insert(Keycode::Q, 0x0);
@@ -83,6 +74,35 @@ fn main() {
     key_map.insert(Keycode::V, 0xD);
     key_map.insert(Keycode::B, 0xE);
     key_map.insert(Keycode::Space, 0xF);
+
+    let mut vm = Chip8::new();
+
+    vm.set_on_display_update(Box::new(
+        || {
+            update_display.set(true);
+        }
+    ));
+
+    vm.set_key_wait(Box::new(||{
+        let mut event_pump = sdl_context.event_pump().unwrap();
+
+        loop {
+            for event in event_pump.poll_iter() {
+                match event {
+                    Event::KeyDown {keycode, ..} | Event::KeyUp {keycode, ..} => {
+                        if let Some(keycode) = keycode {
+                            if key_map.contains_key(&keycode) {
+                                return key_map[&keycode];
+                            }
+                        }
+                    },
+                    _ => { continue }
+                }
+            }
+        }
+    }));
+
+    vm.load_memory(rom);
 
     'running: loop {
 
