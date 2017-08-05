@@ -14,7 +14,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::error::Error;
 use std::cell::Cell;
-use std::time::Duration;
 use std::collections::HashMap;
 
 const WINDOW_WIDTH: u32 = 640;
@@ -129,7 +128,6 @@ fn main() {
                 _ => {}
             }
         }
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
 
         if update_display.get() {
             canvas.clear();
@@ -140,7 +138,7 @@ fn main() {
             update_display.set(false);
         }
 
-        vm.update(512, 1.0/60.0).unwrap();
+        vm.update(1024).unwrap();
     }
 }
 

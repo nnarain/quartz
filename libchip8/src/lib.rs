@@ -2,6 +2,7 @@
 extern crate rand;
 use std::fmt;
 use std::num::Wrapping;
+use std::time::Instant;
 
 const MEMORY_SIZE: usize = 4096;
 const STACK_SIZE: usize = 16;
@@ -28,7 +29,9 @@ pub struct Chip8<'a> {
     key_wait: Option<Box<FnMut() -> u8 + 'a>>, // function that waits for key press and returns value
 
     display_memory: [u8; FRAMEBUFFER_SIZE], // display memory
-    on_display_update: Option<Box<FnMut() + 'a>>
+    on_display_update: Option<Box<FnMut() + 'a>>,
+
+    time: Instant
 }
 
 /// Chip8 instructions
@@ -91,7 +94,9 @@ impl<'a> Chip8<'a> {
             key_wait: Some(Box::new(||{0})),
 
             display_memory: [0; FRAMEBUFFER_SIZE],
-            on_display_update: None
+            on_display_update: None,
+
+            time: Instant::now()
         };
 
         vm.load_font();
@@ -99,12 +104,7 @@ impl<'a> Chip8<'a> {
         vm
     }
 
-    pub fn update(&mut self, steps: u32, elapsed_time: f64) -> Result<(), DecodeError> {
-        // Delay timer updates at 60 Hz
-        if elapsed_time >= (1.0/60.0) {
-            self.update_delay_timer();
-        }
-
+    pub fn update(&mut self, steps: u32) -> Result<(), DecodeError> {
         self.step(steps)?;
 
         Ok(())
@@ -113,6 +113,8 @@ impl<'a> Chip8<'a> {
     /// Run `steps` number of instructions from memory
     pub fn step(&mut self, steps: u32) -> Result<(), DecodeError> {
         for _ in 0..steps {
+            self.update_timers();
+
             let opcode = self.fetch();
 
             match self.decode(opcode) {
@@ -500,6 +502,18 @@ impl<'a> Chip8<'a> {
 
     fn pixel_index(&self, x: usize, y: usize) -> usize {
         (y * (DISPLAY_WIDTH * 3)) + (x * 3)
+    }
+
+    fn update_timers(&mut self) {
+        // Timers are updated at 60Hz
+        let now = Instant::now();
+        let elapsed = now.duration_since(self.time);
+        let elapsed = elapsed.subsec_nanos() as f64 * 1e-9;
+
+        if elapsed >= (1.0/60.0) {
+            self.update_delay_timer();
+            self.time = now;
+        }
     }
 
     fn update_delay_timer(&mut self) {
