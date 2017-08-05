@@ -84,22 +84,23 @@ fn main() {
     ));
 
     vm.set_key_wait(Box::new(||{
-        let mut event_pump = sdl_context.event_pump().unwrap();
-
-        loop {
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::KeyDown {keycode, ..} | Event::KeyUp {keycode, ..} => {
-                        if let Some(keycode) = keycode {
-                            if key_map.contains_key(&keycode) {
-                                return key_map[&keycode];
-                            }
-                        }
-                    },
-                    _ => { continue }
-                }
-            }
-        }
+        // let mut event_pump = sdl_context.event_pump().unwrap();
+        //
+        // loop {
+        //     for event in event_pump.poll_iter() {
+        //         match event {
+        //             Event::KeyDown {keycode, ..} | Event::KeyUp {keycode, ..} => {
+        //                 if let Some(keycode) = keycode {
+        //                     if key_map.contains_key(&keycode) {
+        //                         return key_map[&keycode];
+        //                     }
+        //                 }
+        //             },
+        //             _ => { continue }
+        //         }
+        //     }
+        // }
+        0
     }));
 
     vm.load_memory(rom);
