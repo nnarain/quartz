@@ -1,3 +1,4 @@
+extern crate quartz;
 extern crate libchip8;
 extern crate sdl2;
 
@@ -8,7 +9,6 @@ use sdl2::rect::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-use std::env;
 use std::process;
 use std::fs::File;
 use std::io::prelude::*;
@@ -20,21 +20,19 @@ const WINDOW_WIDTH: u32 = 640;
 const WINDOW_HEIGHT: u32 = 480;
 
 fn main() {
+    // get commandline options
+    let options = quartz::options::get_program_options();
+
+    // load the rom file into memory
+    let rom = load_rom_file(&options.arg_romfile).unwrap_or_else(
+        |e| {
+            println!("{:?}", e);
+            process::exit(1);
+        }
+    );
+
+    // flag for updating the display
     let update_display = Cell::new(false);
-
-    let filename = get_rom_filename(env::args()).unwrap_or_else(
-        |e| {
-            println!("{:?}", e);
-            process::exit(1);
-        }
-    );
-
-    let rom = load_rom_file(filename).unwrap_or_else(
-        |e| {
-            println!("{:?}", e);
-            process::exit(1);
-        }
-    );
 
     // initialize SDL2
     let sdl_context = sdl2::init().unwrap();
@@ -74,7 +72,8 @@ fn main() {
     key_map.insert(Keycode::B, 0xE);
     key_map.insert(Keycode::Space, 0xF);
 
-    let mut vm = Chip8::new(0.0001);
+    // create the Chip8 virtual machince
+    let mut vm = Chip8::new(options.flag_irate.unwrap());
 
     vm.set_on_display_update(Box::new(
         || {
@@ -142,23 +141,11 @@ fn main() {
     }
 }
 
-fn load_rom_file(rom_file: String) -> Result<Vec<u8>, Box<Error>> {
+fn load_rom_file(rom_file: &String) -> Result<Vec<u8>, Box<Error>> {
     let mut file = File::open(rom_file)?;
 
     let mut buffer: Vec<u8> = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
 
     Ok(buffer)
-}
-
-fn get_rom_filename(mut args: std::env::Args) -> Result<String, &'static str> {
-    // skip first (exe name)
-    args.next();
-
-    let filename = match args.next() {
-        Some(arg) => arg,
-        None => return Err("Error parsing command line options")
-    };
-
-    Ok(filename)
 }
