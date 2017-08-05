@@ -74,7 +74,7 @@ fn main() {
     key_map.insert(Keycode::B, 0xE);
     key_map.insert(Keycode::Space, 0xF);
 
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.0001);
 
     vm.set_on_display_update(Box::new(
         || {
@@ -138,7 +138,7 @@ fn main() {
             update_display.set(false);
         }
 
-        vm.update(1024).unwrap();
+        vm.update().unwrap();
     }
 }
 

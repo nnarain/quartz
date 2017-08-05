@@ -31,6 +31,8 @@ pub struct Chip8<'a> {
     display_memory: [u8; FRAMEBUFFER_SIZE], // display memory
     on_display_update: Option<Box<FnMut() + 'a>>,
 
+    instruction_rate: f64,
+    last_step: Instant,
     time: Instant
 }
 
@@ -79,7 +81,7 @@ pub struct DecodeError {
 }
 
 impl<'a> Chip8<'a> {
-    pub fn new() -> Self {
+    pub fn new(rate: f64) -> Self {
         let mut vm = Chip8 {
             memory: [0; MEMORY_SIZE],
             stack:  [0; STACK_SIZE],
@@ -96,6 +98,8 @@ impl<'a> Chip8<'a> {
             display_memory: [0; FRAMEBUFFER_SIZE],
             on_display_update: None,
 
+            instruction_rate: rate,
+            last_step: Instant::now(),
             time: Instant::now()
         };
 
@@ -104,23 +108,28 @@ impl<'a> Chip8<'a> {
         vm
     }
 
-    pub fn update(&mut self, steps: u32) -> Result<(), DecodeError> {
-        self.step(steps)?;
+    /// Update the virtual machine.
+    /// Must be run continously
+    pub fn update(&mut self) -> Result<(), DecodeError> {
+        self.update_timers();
+
+        let (elapsed, now) = get_elapsed_time(&self.last_step);
+
+        if elapsed > self.instruction_rate {
+            self.step()?;
+            self.last_step = now;
+        }
 
         Ok(())
     }
 
-    /// Run `steps` number of instructions from memory
-    pub fn step(&mut self, steps: u32) -> Result<(), DecodeError> {
-        for _ in 0..steps {
-            self.update_timers();
+    /// Run a single step of the VM
+    pub fn step(&mut self) -> Result<(), DecodeError> {
+        let opcode = self.fetch();
 
-            let opcode = self.fetch();
-
-            match self.decode(opcode) {
-                Ok(instr) => self.execute(instr),
-                Err(e) => return Err(e)
-            }
+        match self.decode(opcode) {
+            Ok(instr) => self.execute(instr),
+            Err(e) => return Err(e)
         }
 
         Ok(())
@@ -506,9 +515,7 @@ impl<'a> Chip8<'a> {
 
     fn update_timers(&mut self) {
         // Timers are updated at 60Hz
-        let now = Instant::now();
-        let elapsed = now.duration_since(self.time);
-        let elapsed = elapsed.subsec_nanos() as f64 * 1e-9;
+        let (elapsed, now) = get_elapsed_time(&self.time);
 
         if elapsed >= (1.0/60.0) {
             self.update_delay_timer();
@@ -578,6 +585,15 @@ fn bcd(value: u8) -> (u8, u8, u8) {
     (h, t, o)
 }
 
+fn get_elapsed_time(time: &Instant) -> (f64, Instant) {
+    // get current time
+    let now = Instant::now();
+    // get duration between the old time and now
+    let elapsed = now.duration_since(*time);
+
+    // return as a float
+    (elapsed.subsec_nanos() as f64 * 1e-9, now)
+}
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
