@@ -108,6 +108,8 @@ impl<'a> Chip8<'a> {
         vm
     }
 
+    /// Update the virtual machine.
+    /// Must be run continously
     pub fn update(&mut self) -> Result<(), DecodeError> {
         self.update_timers();
 
@@ -121,7 +123,7 @@ impl<'a> Chip8<'a> {
         Ok(())
     }
 
-    /// Run `steps` number of instructions from memory
+    /// Run a single step of the VM
     pub fn step(&mut self) -> Result<(), DecodeError> {
         let opcode = self.fetch();
 
