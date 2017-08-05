@@ -99,6 +99,17 @@ impl<'a> Chip8<'a> {
         vm
     }
 
+    pub fn update(&mut self, steps: u32, elapsed_time: f64) -> Result<(), DecodeError> {
+        // Delay timer updates at 60 Hz
+        if elapsed_time >= (1.0/60.0) {
+            self.update_delay_timer();
+        }
+
+        self.step(steps)?;
+
+        Ok(())
+    }
+
     /// Run `steps` number of instructions from memory
     pub fn step(&mut self, steps: u32) -> Result<(), DecodeError> {
         for _ in 0..steps {
@@ -489,6 +500,12 @@ impl<'a> Chip8<'a> {
 
     fn pixel_index(&self, x: usize, y: usize) -> usize {
         (y * (DISPLAY_WIDTH * 3)) + (x * 3)
+    }
+
+    fn update_delay_timer(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
     }
 
     fn load_font(&mut self) {
