@@ -139,7 +139,7 @@ fn main() {
             update_display.set(false);
         }
 
-        vm.step(512).unwrap();
+        vm.update(512, 1.0/60.0).unwrap();
     }
 }
 
