@@ -347,7 +347,7 @@ impl<'a> Chip8<'a> {
                 self.i = (Wrapping(self.i) + Wrapping(self.v[x] as u16)).0;
             },
             Instruction::LDFVX(x) => {
-                self.i = (self.v[x] * 5) as u16;
+                self.i = (self.v[x] as u16 * 5) as u16;
             },
             Instruction::LDB(x) => {
                 let (h, t, o) = bcd(self.v[x]);
