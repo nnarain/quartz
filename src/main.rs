@@ -13,7 +13,7 @@ use std::process;
 use std::fs::File;
 use std::io::prelude::*;
 use std::error::Error;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 const WINDOW_WIDTH: u32 = 640;
@@ -52,7 +52,9 @@ fn main() {
     canvas.clear();
     canvas.present();
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
+//    let mut event_pump = sdl_context.event_pump().unwrap();
+    let event_pump = RefCell::new(sdl_context.event_pump().unwrap());
+
 
     let mut key_map = HashMap::new();
     key_map.insert(Keycode::Q, 0x0);
@@ -82,30 +84,27 @@ fn main() {
     ));
 
     vm.set_key_wait(Box::new(||{
-        // let mut event_pump = sdl_context.event_pump().unwrap();
-        //
-        // loop {
-        //     for event in event_pump.poll_iter() {
-        //         match event {
-        //             Event::KeyDown {keycode, ..} | Event::KeyUp {keycode, ..} => {
-        //                 if let Some(keycode) = keycode {
-        //                     if key_map.contains_key(&keycode) {
-        //                         return key_map[&keycode];
-        //                     }
-        //                 }
-        //             },
-        //             _ => { continue }
-        //         }
-        //     }
-        // }
-        0
+        loop {
+            for event in event_pump.borrow_mut().poll_iter() {
+                match event {
+                    Event::KeyDown {keycode, ..} | Event::KeyUp {keycode, ..} => {
+                        if let Some(keycode) = keycode {
+                            if key_map.contains_key(&keycode) {
+                                return key_map[&keycode];
+                            }
+                        }
+                    },
+                    _ => { continue }
+                }
+            }
+        }
     }));
 
     vm.load_memory(rom);
 
     'running: loop {
 
-        for event in event_pump.poll_iter() {
+        for event in event_pump.borrow_mut().poll_iter() {
             match event {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
