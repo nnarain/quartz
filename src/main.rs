@@ -52,9 +52,7 @@ fn main() {
     canvas.clear();
     canvas.present();
 
-//    let mut event_pump = sdl_context.event_pump().unwrap();
     let event_pump = RefCell::new(sdl_context.event_pump().unwrap());
-
 
     let mut key_map = HashMap::new();
     key_map.insert(Keycode::Q, 0x0);
