@@ -2,6 +2,8 @@
 extern crate serde_derive;
 extern crate docopt;
 
+pub mod audio;
+
 /// Quartz Command line arguments
 pub mod options {
     use docopt::Docopt;

@@ -36,9 +36,10 @@ fn main() {
 
     // initialize SDL2
     let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+    let video = sdl_context.video().unwrap();
+    let audio = sdl_context.audio().unwrap();
 
-    let window = video_subsystem.window("Quartz", WINDOW_WIDTH, WINDOW_HEIGHT)
+    let window = video.window("Quartz", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
         .opengl()
         .build()
@@ -47,6 +48,9 @@ fn main() {
     let mut canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
     let mut display = texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, 64, 32).unwrap();
+
+    // generates a tone
+    let tone = quartz::audio::create_audio_device(&audio);
 
     canvas.set_draw_color(Color::RGB(255, 255, 255));
     canvas.clear();
@@ -78,6 +82,17 @@ fn main() {
     vm.set_on_display_update(Box::new(
         || {
             update_display.set(true);
+        }
+    ));
+
+    vm.set_sound_active(Box::new(
+        |active: bool|{
+            if active {
+                tone.resume();
+            }
+            else {
+                tone.pause();
+            }
         }
     ));
 

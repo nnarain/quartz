@@ -25,15 +25,17 @@ pub struct Chip8<'a> {
     dt:     u8,                    // delay timer
     st:     u8,                    // sound timer
 
+    instruction_rate: f64,
+    last_step: Instant,
+    time: Instant,
+
     keys: [bool; NUM_KEYS],              // key values
     key_wait: Option<Box<FnMut() -> u8 + 'a>>, // function that waits for key press and returns value
 
     display_memory: [u8; FRAMEBUFFER_SIZE], // display memory
     on_display_update: Option<Box<FnMut() + 'a>>,
 
-    instruction_rate: f64,
-    last_step: Instant,
-    time: Instant
+    sound_active: Option<Box<FnMut(bool) + 'a>> // function to enable sound
 }
 
 /// Chip8 instructions
@@ -92,15 +94,17 @@ impl<'a> Chip8<'a> {
             dt:     0,
             st:     0,
 
+            instruction_rate: rate,
+            last_step: Instant::now(),
+            time: Instant::now(),
+
             keys:   [false; NUM_KEYS],
             key_wait: Some(Box::new(||{0})),
 
             display_memory: [0; FRAMEBUFFER_SIZE],
             on_display_update: None,
 
-            instruction_rate: rate,
-            last_step: Instant::now(),
-            time: Instant::now()
+            sound_active: None
         };
 
         vm.load_font();
@@ -353,6 +357,9 @@ impl<'a> Chip8<'a> {
             },
             Instruction::LDSTVX(x) => {
                 self.st = self.v[x];
+                if let Some(ref mut sound_active) = self.sound_active {
+                    sound_active(true);
+                }
             },
             Instruction::ADDIVX(x) => {
                 self.i = (Wrapping(self.i) + Wrapping(self.v[x] as u16)).0;
@@ -403,6 +410,10 @@ impl<'a> Chip8<'a> {
 
     pub fn set_on_display_update(&mut self, on_display_update: Box<FnMut() + 'a>) {
         self.on_display_update = Some(on_display_update);
+    }
+
+    pub fn set_sound_active(&mut self, func: Box<FnMut(bool) + 'a>) {
+        self.sound_active = Some(func);
     }
 
     pub fn get_register(&self, x: usize) -> u8 {
@@ -519,6 +530,7 @@ impl<'a> Chip8<'a> {
 
         if elapsed >= (1.0/60.0) {
             self.update_delay_timer();
+            self.update_sound_timer();
             self.time = now;
         }
     }
@@ -526,6 +538,18 @@ impl<'a> Chip8<'a> {
     fn update_delay_timer(&mut self) {
         if self.dt > 0 {
             self.dt -= 1;
+        }
+    }
+
+    fn update_sound_timer(&mut self) {
+        if self.st > 0 {
+            self.st -= 0;
+
+            if self.st == 0 {
+                if let Some(ref mut sound_active) = self.sound_active {
+                    sound_active(false);
+                }
+            }
         }
     }
 
