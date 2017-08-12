@@ -11,8 +11,17 @@ matrix:
   allow_failures:
     - rust: nightly
 
-install:
-  - sudo apt-get install libsdl2-dev -qq
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - cmake
+      - gcc
+      - binutils-dev
+      - libiberty-dev
+      - libsdl2-dev
 
 script:
   - cargo build --release
