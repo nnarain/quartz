@@ -25,7 +25,9 @@ addons:
       - gcc
       - binutils-dev
       - libiberty-dev
-      - libsdl2-dev
+
+install:
+  - sudo apt-get install libsdl2-dev -qq
 
 script:
   - cargo build
