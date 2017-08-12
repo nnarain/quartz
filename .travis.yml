@@ -30,8 +30,8 @@ install:
   - sudo apt-get install libsdl2-dev -qq
 
 script:
-  - cargo build
-  - cargo test --package libchip8
+  - cargo build --release
+  - cargo test --release --package libchip8
 
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
