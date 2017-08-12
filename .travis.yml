@@ -7,6 +7,10 @@ rust:
   - beta
   - nightly
 
+env:
+  global:
+    - RUSTFLAGS="-C link-dead-code"
+
 matrix:
   allow_failures:
     - rust: nightly
