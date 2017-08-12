@@ -6,5 +6,8 @@ authors = ["Natesh Narain <nnaraindev@gmail.com>"]
 [dependencies]
 libchip8 = {path = "libchip8"}
 sdl2 = "0.30.0"
+docopt = "0.8"
+serde = "1.0"
+serde_derive = "1.0"
 
 [workspace]

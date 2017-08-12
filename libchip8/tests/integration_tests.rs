@@ -7,7 +7,7 @@ fn run(vm: &mut Chip8, memory: Vec<u8>, should_panic: bool) {
     vm.load_memory(memory);
 
     loop {
-        match vm.step(1) {
+        match vm.step() {
             Ok(_) => continue,
             Err(e) => {
                 if should_panic {
@@ -24,11 +24,10 @@ fn run(vm: &mut Chip8, memory: Vec<u8>, should_panic: bool) {
 #[test]
 #[should_panic]
 fn test_invalid_opcode() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
-        0xFF,
-        0xFF
+        0xFF, 0xFF // stop
     ];
 
     run(&mut vm, program, true);
@@ -36,12 +35,11 @@ fn test_invalid_opcode() {
 
 #[test]
 fn test_jump() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
-        0x14, 0x50,
-        0xFF,
-        0xFF  // stop
+        0x14, 0x50, // JP 450
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -51,12 +49,11 @@ fn test_jump() {
 
 #[test]
 fn test_call() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x22, 0x50,
-        0xFF,
-        0xFF  // stop
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -68,15 +65,14 @@ fn test_call() {
 
 #[test]
 fn test_load_vx() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x01, // LD V0, 0x01
         0x61, 0x02, // LD V1, 0x02
         0x62, 0x03, // LD V2, 0x03
         0x63, 0x04, // LD V3, 0x04
-        0xFF,       // stop
-        0xFF        //
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -89,14 +85,13 @@ fn test_load_vx() {
 
 #[test]
 fn test_load_vx_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x01, // LD V0, 0x01
         0x61, 0x02, // LD V1, 0x02
         0x80, 0x10, // LD V0, V1
-        0xFF,       // stop
-        0xFF        //
+        0xFF, 0xFF  // stop
     ];
 
     run(&mut vm, program, false);
@@ -107,7 +102,7 @@ fn test_load_vx_vy() {
 
 #[test]
 fn test_skip_if_vx_equals_kk() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0xDE, // LD V0, $DE
@@ -126,7 +121,7 @@ fn test_skip_if_vx_equals_kk() {
 
 #[test]
 fn test_skip_if_vx_equals_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0xDE, // LD V0, $DE
@@ -145,7 +140,7 @@ fn test_skip_if_vx_equals_vy() {
 
 #[test]
 fn test_skip_if_vx_not_equals_kk() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0xDE, // LD V0, $DE
@@ -162,7 +157,7 @@ fn test_skip_if_vx_not_equals_kk() {
 
 #[test]
 fn test_skip_if_vx_not_equals_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0xF0, // LD V0, $F0
@@ -179,11 +174,11 @@ fn test_skip_if_vx_not_equals_vy() {
 
 #[test]
 fn test_add_vx_kk() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x05, // LD V0, $05
-        0x70, 0x05, // SNE V0, $1E
+        0x70, 0x05, // ADD V0, $1E
         0xFF, 0xFF  // stop
     ];
 
@@ -194,7 +189,7 @@ fn test_add_vx_kk() {
 
 #[test]
 fn test_or_vx_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0xF0, // LD V0, $05
@@ -210,7 +205,7 @@ fn test_or_vx_vy() {
 
 #[test]
 fn test_and_vx_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0xF0, // LD V0, $F0
@@ -226,7 +221,7 @@ fn test_and_vx_vy() {
 
 #[test]
 fn test_xor_vx_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x66, // LD V0, $66
@@ -242,7 +237,7 @@ fn test_xor_vx_vy() {
 
 #[test]
 fn test_addc_vx_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0xFF, // LD V0, $FF
@@ -259,7 +254,7 @@ fn test_addc_vx_vy() {
 
 #[test]
 fn test_sub_vx_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x04, // LD V0, $04
@@ -276,11 +271,11 @@ fn test_sub_vx_vy() {
 
 #[test]
 fn test_subn_vx_vy() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x04, // LD V0, $04
-        0x61, 0x05, // LD V0, $05
+        0x61, 0x05, // LD V1, $05
         0x80, 0x17, // SUB V0, V1
         0xFF, 0xFF  // stop
     ];
@@ -292,8 +287,25 @@ fn test_subn_vx_vy() {
 }
 
 #[test]
+fn test_subn_underflow() {
+    let mut vm = Chip8::new(0.00001);
+
+    let program = vec![
+        0x60, 0x05, // LD V0, $05
+        0x61, 0x04, // LD V1, $04
+        0x80, 0x17, // SUB V0, V1
+        0xFF, 0xFF  // stop
+    ];
+
+    run(&mut vm, program, false);
+
+    assert_eq!(vm.get_register(0), 0xFF);
+    assert_eq!(vm.get_register(15), 0);
+}
+
+#[test]
 fn test_shl_vx() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x81, // LD V0, $81
@@ -309,7 +321,7 @@ fn test_shl_vx() {
 
 #[test]
 fn test_shr_vx() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x05, // LD V0, $05
@@ -325,7 +337,7 @@ fn test_shr_vx() {
 
 #[test]
 fn test_load_i() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0xAF, 0xFF, // LD I, $FFF
@@ -339,7 +351,7 @@ fn test_load_i() {
 
 #[test]
 fn test_jump_relative() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x01, // LD V0, $01
@@ -354,7 +366,7 @@ fn test_jump_relative() {
 
 #[test]
 fn test_skip_if_key_pressed() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
     vm.key(0, true);
 
     let program = vec![
@@ -372,7 +384,7 @@ fn test_skip_if_key_pressed() {
 
 #[test]
 fn test_skip_if_key_not_pressed() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
     vm.key(0, false);
 
     let program = vec![
@@ -390,7 +402,7 @@ fn test_skip_if_key_not_pressed() {
 
 #[test]
 fn test_key_wait() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
     vm.set_key_wait(Box::new(|| {
         4
     }));
@@ -408,7 +420,7 @@ fn test_key_wait() {
 
 #[test]
 fn test_ld_f() {
-    let mut vm = Chip8::new();
+    let mut vm = Chip8::new(0.00001);
 
     let program = vec![
         0x60, 0x04, // LD V0, $00
@@ -419,4 +431,19 @@ fn test_ld_f() {
     run(&mut vm, program, false);
 
     assert_eq!(vm.get_i(), 20);
+}
+
+#[test]
+fn test_add_overflow() {
+    let mut vm = Chip8::new(0.00001);
+
+    let program = vec![
+        0x60, 0xFF, // LD V0, $05
+        0x70, 0x01, // ADD V0, $01
+        0xFF, 0xFF  // stop
+    ];
+
+    run(&mut vm, program, false);
+
+    assert_eq!(vm.get_register(0), 0x00);
 }

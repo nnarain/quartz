@@ -2,6 +2,7 @@
 extern crate rand;
 use std::fmt;
 use std::num::Wrapping;
+use std::time::Instant;
 
 const MEMORY_SIZE: usize = 4096;
 const STACK_SIZE: usize = 16;
@@ -28,7 +29,11 @@ pub struct Chip8<'a> {
     key_wait: Option<Box<FnMut() -> u8 + 'a>>, // function that waits for key press and returns value
 
     display_memory: [u8; FRAMEBUFFER_SIZE], // display memory
-    on_display_update: Option<Box<FnMut() + 'a>>
+    on_display_update: Option<Box<FnMut() + 'a>>,
+
+    instruction_rate: f64,
+    last_step: Instant,
+    time: Instant
 }
 
 /// Chip8 instructions
@@ -76,7 +81,7 @@ pub struct DecodeError {
 }
 
 impl<'a> Chip8<'a> {
-    pub fn new() -> Self {
+    pub fn new(rate: f64) -> Self {
         let mut vm = Chip8 {
             memory: [0; MEMORY_SIZE],
             stack:  [0; STACK_SIZE],
@@ -91,7 +96,11 @@ impl<'a> Chip8<'a> {
             key_wait: Some(Box::new(||{0})),
 
             display_memory: [0; FRAMEBUFFER_SIZE],
-            on_display_update: None
+            on_display_update: None,
+
+            instruction_rate: rate,
+            last_step: Instant::now(),
+            time: Instant::now()
         };
 
         vm.load_font();
@@ -99,15 +108,28 @@ impl<'a> Chip8<'a> {
         vm
     }
 
-    /// Run `steps` number of instructions from memory
-    pub fn step(&mut self, steps: u32) -> Result<(), DecodeError> {
-        for _ in 0..steps {
-            let opcode = self.fetch();
+    /// Update the virtual machine.
+    /// Must be run continously
+    pub fn update(&mut self) -> Result<(), DecodeError> {
+        self.update_timers();
 
-            match self.decode(opcode) {
-                Ok(instr) => self.execute(instr),
-                Err(e) => return Err(e)
-            }
+        let (elapsed, now) = get_elapsed_time(&self.last_step);
+
+        if elapsed > self.instruction_rate {
+            self.step()?;
+            self.last_step = now;
+        }
+
+        Ok(())
+    }
+
+    /// Run a single step of the VM
+    pub fn step(&mut self) -> Result<(), DecodeError> {
+        let opcode = self.fetch();
+
+        match self.decode(opcode) {
+            Ok(instr) => self.execute(instr),
+            Err(e) => return Err(e)
         }
 
         Ok(())
@@ -227,7 +249,7 @@ impl<'a> Chip8<'a> {
                 self.v[x] = b;
             },
             Instruction::ADDVXB(x, b) => {
-                self.v[x] += b;
+                self.v[x] = (Wrapping(self.v[x]) + Wrapping(b)).0;
             },
             Instruction::LDVXY(x, y) => {
                 self.v[x] = self.v[y];
@@ -278,7 +300,7 @@ impl<'a> Chip8<'a> {
                     self.v[0xF] = 0;
                 }
 
-                self.v[x] = self.v[y] - self.v[x];
+                self.v[x] = (Wrapping(self.v[y]) - Wrapping(self.v[x])).0;
             },
             Instruction::SHL(x) => {
                 self.v[0xF] = (self.v[x] & 0x80) >> 7;
@@ -333,10 +355,10 @@ impl<'a> Chip8<'a> {
                 self.st = self.v[x];
             },
             Instruction::ADDIVX(x) => {
-                self.i = self.i + (self.v[x] as u16);
+                self.i = (Wrapping(self.i) + Wrapping(self.v[x] as u16)).0;
             },
             Instruction::LDFVX(x) => {
-                self.i = (self.v[x] * 5) as u16;
+                self.i = (self.v[x] as u16 * 5) as u16;
             },
             Instruction::LDB(x) => {
                 let (h, t, o) = bcd(self.v[x]);
@@ -491,6 +513,22 @@ impl<'a> Chip8<'a> {
         (y * (DISPLAY_WIDTH * 3)) + (x * 3)
     }
 
+    fn update_timers(&mut self) {
+        // Timers are updated at 60Hz
+        let (elapsed, now) = get_elapsed_time(&self.time);
+
+        if elapsed >= (1.0/60.0) {
+            self.update_delay_timer();
+            self.time = now;
+        }
+    }
+
+    fn update_delay_timer(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
+    }
+
     fn load_font(&mut self) {
         let fonts: [u8; 80] = [
             0xF0, 0x90, 0x90, 0x90, 0xF0,
@@ -538,15 +576,24 @@ fn nybble(value: u16, n: u8) -> u8 {
 
 fn bcd(value: u8) -> (u8, u8, u8) {
     let mut dec = value;
-    let h = dec % 10;
+    let o = dec % 10;
     dec /= 10;
     let t = dec % 10;
     dec /= 10;
-    let o = dec % 10;
+    let h = dec % 10;
 
     (h, t, o)
 }
 
+fn get_elapsed_time(time: &Instant) -> (f64, Instant) {
+    // get current time
+    let now = Instant::now();
+    // get duration between the old time and now
+    let elapsed = now.duration_since(*time);
+
+    // return as a float
+    (elapsed.subsec_nanos() as f64 * 1e-9, now)
+}
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
@@ -554,5 +601,24 @@ pub fn version() -> &'static str {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
+    #[test]
+    fn test_bcd() {
+        let (h, t, o) = bcd(255);
+
+        assert_eq!(h, 2);
+        assert_eq!(t, 5);
+        assert_eq!(o, 5);
+    }
+
+    #[test]
+    fn test_nybble() {
+        let value = 0xDEADu16;
+
+        assert_eq!(nybble(value, 3), 0xD);
+        assert_eq!(nybble(value, 2), 0xE);
+        assert_eq!(nybble(value, 1), 0xA);
+        assert_eq!(nybble(value, 0), 0xD);
+    }
 }
